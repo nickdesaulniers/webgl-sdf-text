@@ -10,7 +10,7 @@ function getASmallCanvasCtx() {
 
 // gets an index into a linear array
 function getIndex (x, y, width) {
-    return x + y * width;
+    return (x + y * width) * 4;
 };
 
 // http://homepages.inf.ed.ac.uk/rbf/HIPR2/distance.htm
@@ -20,38 +20,38 @@ function euclideanDistance(x1, y1, x2, y2) {
 };
 
 function isInside(rgba) {
-    return (rgba & 0x80808080) != 0;
+    // Not checking alpha
+    return (rgba & 0x80808000) != 0;
 };
 
 // returns the four subsequent elements as a 32b int
 function readPixel(imgData, index) {
-    return imgData.data[index    ] << 24 +
-           imgData.data[index + 1] << 16 +
-           imgData.data[index + 2] << 8  +
-           imgData.data[index + 3];
+    return ((imgData.data[index    ] << 24) | 0) +
+           ((imgData.data[index + 1] << 16) | 0) +
+           ((imgData.data[index + 2] << 8)  | 0) +
+             imgData.data[index + 3];
 };
 
 function writePixel(imgData, index, val) {
-    imgData.data[index    ] = val >>> 24;
-    imgData.data[index + 1] = val >>> 16;
-    imgData.data[index + 2] = val >>> 8;
-    imgData.data[index + 3] = val;
+    imgData.data[index    ] = (val & 0xFF000000) >>> 24;
+    imgData.data[index + 1] = (val & 0x00FF0000) >>> 16;
+    imgData.data[index + 2] = (val & 0x0000FF00) >>> 8;
+    imgData.data[index + 3] = (val & 0x000000FF);
 };
 
 // http://thomasdiewald.com/blog/?p=1994
 function distanceTransform(imgData) {
 
     // A pass on the input first to detect if a pixel is "in" or "out."
-    for (var y = 1; y < imgData.height - 1; ++y) {
-
-        for (var x = 1; x < imgData.width - 1; ++x) {
-            
+    for (var y = 0; y < imgData.height; ++y) {
+        for (var x = 0; x < imgData.width; ++x) {
             var currentIndex = getIndex(x, y, imgData.width);
-            var currentValue = readPixel(imgData, currentIndex);
-
-            imgData.data[currentIndex] = isInside(currentValue) ? 0xFF : 0x00FF0000;
+            var inside = isInside(readPixel(imgData, currentIndex));
+            writePixel(imgData, currentIndex, inside ? 0xFF0000FF : 0x00FF00FF);
         }
     }
+
+    // Now we can create our distance maps
 
     // Second Pass
     /*for (y = imgData.height - 1; y > 0; --y) {
@@ -72,21 +72,16 @@ function distanceTransform(imgData) {
 };
 
 var ctx = getASmallCanvasCtx();
-
 ctx.fillStyle = '#000000';
 ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 ctx.font = '16pt Arial';
 ctx.fillStyle = '#FFFFFF';
 ctx.fillRect(ctx.canvas.width / 3, ctx.canvas.height / 3, ctx.canvas.width / 3, ctx.canvas.height / 3);
 //ctx.fillText('hello world', 0, 10);
-var ctx2 = getASmallCanvasCtx();
 
 var imgData = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
-console.log(imgData);
-
-
 distanceTransform(imgData);
-
+var ctx2 = getASmallCanvasCtx();
 ctx2.putImageData(imgData, 0, 0);
 
 document.addEventListener('DOMContentLoaded', function () {

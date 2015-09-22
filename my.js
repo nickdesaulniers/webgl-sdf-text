@@ -19,28 +19,37 @@ function euclideanDistance(x1, y1, x2, y2) {
     return Math.sqrt(Math.pow(x2 - x1, 2) + Math.sqrt(Math.pow(y2 - y1, 2)));
 };
 
+function isInside(rgba) {
+    return (rgba & 0x80808080) != 0;
+};
+
+// returns the four subsequent elements as a 32b int
+function readPixel(imgData, index) {
+    return imgData.data[index    ] << 24 +
+           imgData.data[index + 1] << 16 +
+           imgData.data[index + 2] << 8  +
+           imgData.data[index + 3];
+};
+
+function writePixel(imgData, index, val) {
+    imgData.data[index    ] = val >>> 24;
+    imgData.data[index + 1] = val >>> 16;
+    imgData.data[index + 2] = val >>> 8;
+    imgData.data[index + 3] = val;
+};
+
 // http://thomasdiewald.com/blog/?p=1994
 function distanceTransform(imgData) {
 
-    // This is wrong, need to do a pass on the input first to detect
-    // if a pixel is "in" or "out."
-
-    // First Pass
+    // A pass on the input first to detect if a pixel is "in" or "out."
     for (var y = 1; y < imgData.height - 1; ++y) {
 
         for (var x = 1; x < imgData.width - 1; ++x) {
             
             var currentIndex = getIndex(x, y, imgData.width);
-            console.log(currentIndex);
+            var currentValue = readPixel(imgData, currentIndex);
 
-            var distanceToLeft = euclideanDistance(x, y, x - 1, y);
-            var distanceToTop = euclideanDistance(x, y, x, y - 1);
-            var distanceToTopLeft = euclideanDistance(x, y, x - 1, y - 1);
-            var distanceToTopRight = euclideanDistance(x, y, x - 1, y + 1);
-
-            var smallest = Math.min(distanceToLeft, distanceToTop, distanceToTopLeft, distanceToTopRight);
-
-            imgData.data[currentIndex] = smallest;
+            imgData.data[currentIndex] = isInside(currentValue) ? 0xFF : 0x00FF0000;
         }
     }
 
